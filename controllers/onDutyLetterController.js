@@ -1,4 +1,4 @@
-const { Sequelize } = require("sequelize");
+const { Sequelize, Op } = require("sequelize");
 const {
   EmployeeView,
   TCLTREQUEST,
@@ -12,22 +12,18 @@ const getOnDutyLetter = async (req, res) => {
   const { request_no } = req.body;
 
   try {
-    const onduty = await TTADONDUTYREQUEST.findAll({
+    const onduty = await TTADONDUTYREQUEST.findOne({
       where: {
         request_no: request_no,
       },
-      //   raw:true,
       include: [
         {
           model: TTADONDUTYREQUESTDTL,
           as: "detail_onduty",
-          //   raw: true,
           include: [
             {
               model: TTAMODDESTINATION,
-              //   attributes: [],
               as: "TTAMODDESTINATION",
-              //   require: false,
               attributes: [],
             },
           ],
@@ -37,7 +33,6 @@ const getOnDutyLetter = async (req, res) => {
               Sequelize.literal("[detail_onduty->TTAMODDESTINATION].[name_en]"),
               "destination_name",
             ],
-            // "destination_code",
             "startdate",
             "enddate",
             "location_code",
@@ -70,27 +65,59 @@ const getOnDutyLetter = async (req, res) => {
         "purpose_code",
         "remark",
         "cost_code",
-        [
-          Sequelize.col("[detail_approval].[approved_list]"),
-          "approved_list",
-        ],
+        [Sequelize.col("[detail_approval].[approved_list]"), "approved_list"],
+        [Sequelize.col("[detail_approval].[approved_data]"), "flow_approval"],
       ],
     });
 
-    // let listApproval = [];
-    // const approvalListRaw = onduty?.approved_list;
+    let result = null;
 
-    // if(approvalListRaw){
-    //     const Emp_No = approvalListRaw.split(",").map((id) => id.trim());
+    if (onduty) {
+      const raw = onduty.get({ plain: true });
 
-    //     approvalEmp = await employeeview
-    // }
+      const FlowApproval = JSON.parse(raw.flow_approval || "{}");
 
-    res.json(onduty);
+      const approvalOrder = Object.keys(FlowApproval)
+            .map((key) => {
+              const [prefix, user_id] = key.split("_");
+              return {
+                order: parseInt(prefix), user_id
+              }
+            })
+            .sort((a,b) => a.order - b.order);
 
-    // let getApproval = onduty.map(data =>{
-    //     return data.detail_employee.approved_list
-    // })
+      const Emp_No = approvalOrder.map((item) => item.user_id);
+
+      let listApproval = [];
+      if (Emp_No.length > 0) {
+        listApproval = await EmployeeView.findAll({
+          where: {
+            user_id: {
+              [Op.in]: Emp_No,
+            },
+          },
+          attributes: ["user_id", "emp_no", "full_name", "pos_name_en"],
+        });
+
+        const plainList = listApproval.map((e) => e.get({plain: true}));
+
+        listApproval = approvalOrder.map(({user_id}) => {
+          const emp = plainList.find((emp) => emp.user_id == user_id)
+          if(emp){
+            const {user_id, ...cleaned} = emp;
+            return cleaned;
+          }
+          return null;
+        }).filter(Boolean);
+      }
+
+      result = {
+        ...raw,
+        approval_list: listApproval,
+      };
+    }
+
+    res.status(200).json({ status: "Success", data: result });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: error });
