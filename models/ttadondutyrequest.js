@@ -19,6 +19,10 @@ module.exports = (sequelize, DataTypes) => {
         sourceKey: "request_no",
         as: "detail_approval"
       })
+      TTADONDUTYREQUEST.belongsTo(models.TTAMONDUTYPURPOSETYPE,{
+        foreignKey: "purpose_code",
+        sourceKey: "purpose_code"
+      })
     }
   }
   TTADONDUTYREQUEST.init(
