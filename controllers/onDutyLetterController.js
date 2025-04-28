@@ -14,10 +14,11 @@ const getOnDutyLetter = async (req, res) => {
   const { request_no } = req.body;
 
   try {
-
-    if(!request_no || !request_no.includes('ODR')){
+    if (!request_no || !request_no.includes("ODR")) {
       return res.status(400).json({
-        message: "Tidak dapat diproses karena Request Nomor ini bukan untuk On Duty",
+        status: "error",
+        message:
+          "Tidak dapat diproses karena Request Nomor ini bukan untuk On Duty",
       });
     }
 
@@ -28,8 +29,9 @@ const getOnDutyLetter = async (req, res) => {
       attributes: ["approval_list", "approved_list"],
     });
 
-    if(!checkApproval){
+    if (!checkApproval) {
       return res.status(404).json({
+        status: "error",
         message: "Data On Duty tidak ditemukan",
       });
     }
@@ -42,6 +44,7 @@ const getOnDutyLetter = async (req, res) => {
       !approvalArray.every((item, index) => item === approvedArray[index])
     ) {
       return res.status(400).json({
+        status: "error",
         message: "On Duty ini belum fully approved",
       });
     }
@@ -141,6 +144,7 @@ const getOnDutyLetter = async (req, res) => {
 
       if (approvalOrder.length === 0) {
         return res.status(400).json({
+          status: "error",
           message:
             "Data tidak dapat ditampilkan karena flow approval tidak ada",
         });
