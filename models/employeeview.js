@@ -13,6 +13,11 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "emp_id",
         // sourceKey: "emp_id",
       });
+
+      EmployeeView.belongsTo(models.TEOMCOMPANY, {
+        foreignKey: "company_id"
+      });
+
     }
   }
   EmployeeView.init(

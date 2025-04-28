@@ -6,6 +6,11 @@ module.exports = (sequelize, DataTypes) => {
     static associate(models) {
       // Define associations if necessary
       // Example: TEOMCOMPANY.belongsTo(models.TPYMTAXCOUNTRY, { foreignKey: 'taxcountry' });
+
+      TEOMCOMPANY.hasMany(models.EmployeeView,{
+        foreignKey: "company_id"
+      });
+
     }
   }
 
